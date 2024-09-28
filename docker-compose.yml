@@ -1,0 +1,36 @@
+version: '3.7'
+
+services:
+  dind:
+    image: docker:dind
+    container_name: dind
+    privileged: true
+    expose:
+      - 2375
+    networks:
+      - jenkins_dind
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    volumes:
+      - /var/lib/docker
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    depends_on:
+      - dind
+    ports:
+      - 8080:8080
+      - 50000:50000
+    volumes:
+      - ./jenkins:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock # Mount the Docker socket
+    environment:
+      DOCKER_HOST: "tcp://dind:2375"
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false" # Optional, to skip setup wizard
+    networks:
+      - jenkins_dind
+
+networks:
+  jenkins_dind:
+    driver: bridge
